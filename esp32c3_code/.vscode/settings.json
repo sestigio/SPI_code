@@ -1,0 +1,13 @@
+{
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32c3"
+  },
+  "clangd.path": "C:\\Users\\puesa\\.espressif\\tools\\esp-clang\\esp-19.1.2_20250312\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=c:\\Users\\puesa\\Proyectos\\SPI_code\\esp32c3_code\\build"
+  ],
+  "idf.portWin": "COM14",
+  "idf.flashType": "UART"
+}

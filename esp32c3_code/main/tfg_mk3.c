@@ -11,6 +11,8 @@
 #include "esp_timer.h" // para timer estilo millis()
 
 #include <ada_hal.h>
+#include <wifi_component.h>
+#include <mqtt_component.h>
 
 #define DUTY_INITIAL 307 // Para configurar PWM del Servo
 
@@ -322,6 +324,12 @@ void app_main(void)
     //-------------- INA SETUP ---------------//
     //init_ina();
 
+    //============= WIFI SETUP ===============//
+    iniciar_wifi();
+
+    //============= MQTT SETUP ===============//
+    iniciar_mqtt();
+
     // Call Ada elaboration code and auxiliary Ada initialization//
     
     Ada_Codeinit();
@@ -336,7 +344,14 @@ void app_main(void)
 
     while (1)
     {
-        ada_code_exec();
+        // Importante: Si ada_code_exec() no tiene retardos, 
+        // añade un vTaskDelay aquí para no saturar el CPU
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        
+        // Publicar cada 2 segundos para probar
+        mqtt_publicar("test", "Mensaje desde el bucle");
+        
+        ada_code_exec(); 
     }
 
 }
