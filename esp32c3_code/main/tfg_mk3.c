@@ -56,6 +56,19 @@ void __gnat_last_chance_handler(char *source_location,
     }
 }
 
+void mqtt_enviar_telemetria(void) {
+
+    char json_buffer[256]; // Tamaño suficiente para el string
+
+    // Creamos el JSON manualmente
+    snprintf(json_buffer, sizeof(json_buffer),
+             "{\"curr_st\":%d,\"prior_st\":%d,\"servo_st\":%d,\"gyro_st\":%d,\"mean\":%d,\"bearing\":%d}",
+             current_state, prior_state, servo_state, gyro_state, mobile_mean, servo_bearing);
+
+    // Reutilizamos tu función de publicar
+    mqtt_publicar("test", json_buffer);
+}
+
 void ada_esp_log(int debug_code)
 {
     switch (debug_code)
@@ -342,16 +355,20 @@ void app_main(void)
 
     // ------------------------- //
 
+    // VARIABLES DE INTERVALO TEMPORAL PARA ENVÍO MQTT
+    int64_t last_send_time = 0;
+    const int64_t send_interval = 1000000; // 1 segundo en microsegundos (1000ms)
+
     while (1)
-    {
-        // Importante: Si ada_code_exec() no tiene retardos, 
-        // añade un vTaskDelay aquí para no saturar el CPU
-        vTaskDelay(pdMS_TO_TICKS(2000));
-        
-        // Publicar cada 2 segundos para probar
-        mqtt_publicar("test", "Mensaje desde el bucle");
-        
+    {        
         ada_code_exec(); 
+
+        int64_t now = esp_timer_get_time();
+        if ((now - last_send_time) >= send_interval) {
+            mqtt_enviar_telemetria();
+            last_send_time = now;
+        }
+
     }
 
 }

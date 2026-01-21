@@ -96,9 +96,7 @@ package body Ada_Code is
          case servo_state is  --Mostrar estado del servo
          when SERVO_REDUNDANT =>
             ada_esp_log (117);
-            ada_esp_log (117);
          when others =>
-            ada_esp_log (116);
             ada_esp_log (116);
          end case;
 
@@ -127,31 +125,17 @@ package body Ada_Code is
    
    begin
 
-   if gyro_state = ALL_GYRO_FAIL then
-
-      current_state := MANUAL;
-      return;
-
-   else
-
       if servo_state = SERVO_REDUNDANT then
-         set_pwm_duty (0, servo_redundancy);
+         set_pwm_duty (duty_cycle, servo_redundancy);
          servo_redundancy := 1;
       end if;
-      
-      if x_accel < accel_min then
-         front_bearing := accel_min;
-      elsif x_accel > accel_max then
-         front_bearing := accel_max;
-      else
-         front_bearing := x_accel;
-      end if;
 
-      duty_cycle := Integer(Float(front_bearing) * Float(duty_cycle_half_difference) / accel_max) + duty_cycle_mean;
+      --duty_cycle := leer_comando_rasp("duty");
+
       set_pwm_duty (duty_cycle, servo_redundancy);
 
       servo_bearing :=
-        (duty_cycle - duty_cycle_mean) * 90 / duty_cycle_half_difference;
+      (duty_cycle - duty_cycle_mean) * 90 / duty_cycle_half_difference;
 
       if counter >= count_to_log then
 
@@ -160,17 +144,13 @@ package body Ada_Code is
          case servo_state is  --Mostrar estado del servo
          when SERVO_REDUNDANT =>
             ada_esp_log (117);
-            ada_esp_log (117);
          when others =>
-            ada_esp_log (116);
             ada_esp_log (116);
          end case;
 
          ada_esp_log (103); -- Mostrar ángulo del servo
 
       end if;
-
-   end if;
 
    end operate_servo_auto;
 
@@ -377,7 +357,6 @@ package body Ada_Code is
    end Majority_Of;
       
    procedure mpu_operate (x_accel : out Float; y_accel : out Float; z_accel : out Float) is
-      
 
       x_accel_arr, y_accel_arr, z_accel_arr, temperature_arr : mpu_data_t (1 .. 3);
       different_accel_arr : mpu_difference_t (1 .. 3);
@@ -395,7 +374,6 @@ package body Ada_Code is
       case gyro_state is
          when ALL_GYRO_FAIL =>
             if counter >= count_to_log then
-               ada_esp_log (110);
                ada_esp_log (110);
             end if;
             x_accel := 0.0;
@@ -457,12 +435,9 @@ package body Ada_Code is
       case gyro_state is
          when ALL_GYRO_FAIL =>
             ada_esp_log (100);
-            ada_esp_log (100);
          when GYRO_NORMAL =>
             ada_esp_log (111);
-            ada_esp_log (111);
          when others =>
-            ada_esp_log (112);
             ada_esp_log (112);
       end case;
 
@@ -629,7 +604,6 @@ package body Ada_Code is
       if prior_state /= current_state then
          prior_state := current_state;
          ada_esp_log (101);
-         ada_esp_log (101);
          gpio_set_level (PIN_LED_AMARILLO, 1);
          servo_state := SERVO_FULL;
          gyro_state := GYRO_NORMAL;
@@ -663,7 +637,6 @@ package body Ada_Code is
 
       if prior_state /= current_state then
          prior_state := current_state;
-         ada_esp_log (101);
          ada_esp_log (101);
          gpio_set_level (PIN_LED_VERDE, 1);
       end if;
@@ -731,7 +704,6 @@ package body Ada_Code is
       if prior_state /= current_state then
          prior_state := current_state;
          ada_esp_log (101);
-         ada_esp_log (101);
          gpio_set_level (PIN_LED_VERDE, 1);
          gpio_set_level (PIN_LED_AMARILLO, 1);
       end if;
@@ -793,7 +765,6 @@ package body Ada_Code is
          mpuWriteReg(16#1C#, 0);  -- ACC FS Range ±2g
          mpuWriteReg(16#1B#, 0);  -- GYR FS Range ±250º/s
          ada_esp_log (108);
-         ada_esp_log (108);
          vTaskDelay (1);
       end loop;
 
@@ -808,7 +779,6 @@ package body Ada_Code is
                       -- 0 001 010 1 = 21 : Canal3, 16 muestras, 2ms para bus
                       -- 01 101 111 = 111 : 2ms para shunt, modo continua shunt y bus
       inaWriteReg(16#00#, data);
-      ada_esp_log (109);
       ada_esp_log (109);
 
    end ada_init_ina;
