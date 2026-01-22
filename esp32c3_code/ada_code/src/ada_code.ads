@@ -67,7 +67,8 @@ t_1_interval : Interfaces.Integer_64;
 --green_led : Boolean;
 --yellow_led : Boolean;
 --red_led : Boolean;
-x_accel, y_accel, z_accel : Float;
+x_accel, y_accel, z_accel : Float
+   with Export, Convention => C;
 
 -- Variables exportadas a C -------------------------------------
 
@@ -151,6 +152,9 @@ MPU2_CHANNEL : constant Integer
 MPU3_CHANNEL : constant Integer
    with Import, Convention => C, External_Name => "MPU3_CHANNEL";
 
+angulo_recibido_mqtt : Integer range -90 .. 90
+   with Import, Convention => C, External_Name => "angulo_recibido_mqtt";
+
 -- Funciones de los periféricos, algunas importadas de C -------------------------------------
 
 -- FUNCIONES MISCELÁNEAS
@@ -161,6 +165,9 @@ procedure ada_esp_log_gyro(x : Float; y : Float; z : Float; t : Float; gx : Floa
    with Import, Convention => C;
 
 procedure ada_esp_log_accel(x : Float; y : Float; z : Float)
+   with Import, Convention => C;
+
+procedure ada_esp_log_local_accel(x1 : Float; y1 : Float; z1 : Float; x2 : Float; y2 : Float; z2 : Float; x3 : Float; y3 : Float; z3 : Float)
    with Import, Convention => C;
 
 procedure ada_esp_log_ina(c3_shunt_voltage : Float; c3_current : Float; c3_bus_voltage : Float; c2_shunt_voltage : Float; c2_current : Float; c2_bus_voltage : Float)

@@ -37,6 +37,15 @@ const int MPU3_CHANNEL = 0;
 
 int frequency = 50; // Para configurar PWM del Servo
 
+//====== VARIABLES GLOBALES AÑADIDAS PARA TELEMETRÍA========//
+float x1_accel = 0, y1_accel = 0, z1_accel = 0;
+float x2_accel = 0, y2_accel = 0, z2_accel = 0;
+float x3_accel = 0, y3_accel = 0, z3_accel = 0;
+
+float servo1_shunt_voltage = 0, servo1_current = 0, servo1_bus_voltage = 0; 
+float servo2_shunt_voltage = 0, servo2_current = 0, servo2_bus_voltage = 0;
+//=========================================================//
+
 uint64_t t_Intr1 = 0;
 uint64_t t_Intr2 = 0;
 int interval_t_Intr1 = 250000; // Para evitar los rebotes delbotón en la interrupción
@@ -58,15 +67,15 @@ void __gnat_last_chance_handler(char *source_location,
 
 void mqtt_enviar_telemetria(void) {
 
-    char json_buffer[256]; // Tamaño suficiente para el string
+    char json_buffer[512]; // Tamaño suficiente para el string
 
     // Creamos el JSON manualmente
     snprintf(json_buffer, sizeof(json_buffer),
-             "{\"curr_st\":%d,\"prior_st\":%d,\"servo_st\":%d,\"gyro_st\":%d,\"mean\":%d,\"bearing\":%d}",
-             current_state, prior_state, servo_state, gyro_state, mobile_mean, servo_bearing);
+        "{\"curr_st\":%d,\"prior_st\":%d,\"servo_st\":%d,\"gyro_st\":%d,\"mean\":%d,\"bearing\":%d,\"x_accel_glob\":%.2f,\"y_accel_glob\":%.2f,\"z_accel_glob\":%.2f,\"x1_accel\":%.2f,\"y1_accel\":%.2f,\"z1_accel\":%.2f,\"x2_accel\":%.2f,\"y2_accel\":%.2f,\"z2_accel\":%.2f,\"x3_accel\":%.2f,\"y3_accel\":%.2f,\"z3_accel\":%.2f,\"s1_v_sh\":%.2f,\"s1_curr\":%.2f,\"s1_v_bus\":%.2f,\"s2_v_sh\":%.2f,\"s2_curr\":%.2f,\"s2_v_bus\":%.2f}",
+        current_state, prior_state, servo_state, gyro_state, mobile_mean, servo_bearing, x_accel, y_accel, z_accel, x1_accel, y1_accel, z1_accel, x2_accel, y2_accel, z2_accel, x3_accel, y3_accel, z3_accel,servo1_shunt_voltage, servo1_current, servo1_bus_voltage, servo2_shunt_voltage, servo2_current, servo2_bus_voltage);
 
     // Reutilizamos tu función de publicar
-    mqtt_publicar("test", json_buffer);
+    mqtt_publicar("SPI_project/telemetria", json_buffer);
 }
 
 void ada_esp_log(int debug_code)
@@ -144,6 +153,19 @@ void ada_esp_log_gyro(float x, float y, float z, float t, float gx, float gy, fl
     printf("\nx=%.2f , y=%.2f , z=%.2f\nT=%.2f\nGx=%.2f , Gy=%.2f , Gz=%.2f\n", x, y, z, t, gx, gy, gz);
 }
 
+void ada_esp_log_local_accel(float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3)
+{
+    x1_accel = x1;
+    y1_accel = y1;
+    z1_accel = z1;
+    x2_accel = x2;
+    y2_accel = y2;
+    z2_accel = z2;
+    x3_accel = x3;
+    y3_accel = y3;
+    z3_accel = z3;
+}
+
 void ada_esp_log_accel(float x, float y, float z)
 {
     printf("\nNet accel: x=%.2f, y=%.2f, z=%.2f\n", x, y, z);
@@ -153,6 +175,13 @@ void ada_esp_log_ina(float c3_shunt_voltage, float c3_current, float c3_bus_volt
 {
     printf("\nSV1=%.3f, SC1= %.3f, BV1= %.3f\n", c3_shunt_voltage, c3_current, c3_bus_voltage);
     printf("\nSV2=%.3f, SC2= %.3f, BV2= %.3f\n", c2_shunt_voltage, c2_current, c2_bus_voltage);
+
+    servo1_shunt_voltage = c3_shunt_voltage;
+    servo1_bus_voltage = c3_bus_voltage;
+    servo1_current = c3_current;   
+    servo2_shunt_voltage = c2_shunt_voltage;
+    servo2_bus_voltage = c2_bus_voltage;
+    servo2_current = c2_current;
 }
 
 //-------------- FUNCIONES DE LED ---------------//

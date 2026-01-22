@@ -130,11 +130,11 @@ package body Ada_Code is
          servo_redundancy := 1;
       end if;
 
-      --duty_cycle := leer_comando_rasp("duty");
+      duty_cycle := angulo_recibido_mqtt* duty_cycle_half_difference /90 + duty_cycle_mean;
 
       set_pwm_duty (duty_cycle, servo_redundancy);
 
-      servo_bearing :=
+      servo_bearing := 
       (duty_cycle - duty_cycle_mean) * 90 / duty_cycle_half_difference;
 
       if counter >= count_to_log then
@@ -440,6 +440,18 @@ package body Ada_Code is
          when others =>
             ada_esp_log (112);
       end case;
+
+      ada_esp_log_local_accel(
+         x1 => x_accel_arr(1),
+         y1 => y_accel_arr(1),
+         z1 => z_accel_arr(1),
+         x2 => x_accel_arr(2),
+         y2 => y_accel_arr(2),
+         z2 => z_accel_arr(2),
+         x3 => x_accel_arr(3),
+         y3 => y_accel_arr(3),
+         z3 => z_accel_arr(3)
+      );
 
       ada_esp_log_accel
       (x  => x_accel_result,
