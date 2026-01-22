@@ -1,70 +1,123 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Control TFG - ESP32</title>
+    <title>Control TFG - Panel de Navegación</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f4f4f4; }
-        .card { background: white; padding: 20px; margin: 10px auto; width: 80%; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        input[type=range] { width: 80%; height: 25px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #eef2f7; margin: 0; padding: 20px; }
+        .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 1200px; margin: auto; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .full-width { grid-column: span 2; }
+        .status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }
+        .status-item { padding: 10px; border-radius: 8px; background: #f8f9fa; border: 1px solid #dee2e6; }
+        .label { font-size: 0.8em; color: #666; display: block; margin-bottom: 5px; }
+        .value { font-weight: bold; color: #333; font-size: 1.1em; }
+        input[type=range] { width: 100%; cursor: pointer; }
         .valor-grande { font-size: 2em; color: #007bff; font-weight: bold; }
+        h3 { margin-top: 0; color: #444; border-bottom: 1px solid #eee; padding-bottom: 10px; }
     </style>
 </head>
 <body>
-    <h1>Panel de Control MQTT</h1>
 
-    <div class="card">
-        <h3>Control del Servo</h3>
-        <input type="range" min="-90" max="90" value="0" id="servoSlider" oninput="cambiarAngulo(this.value)">
-        <p>Ángulo: <span id="lblAngulo" class="valor-grande">0</span>°</p>
-    </div>
+    <div class="grid-container">
+        <div class="card full-width">
+            <h3>Estado Global del Sistema</h3>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="label">ESTADO ACTUAL</span>
+                    <span id="curr_st" class="value">--</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">ESTADO PREVIO</span>
+                    <span id="prior_st" class="value">--</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">MODO SERVOS</span>
+                    <span id="servo_st" class="value">--</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">GIROSCOPIOS</span>
+                    <span id="gyro_st" class="value">--</span>
+                </div>
+            </div>
+        </div>
 
-    <div class="card">
-        <h3>Telemetría en Tiempo Real</h3>
-        <p>Estado Actual: <span id="curr_st">--</span> | Media Móvil: <span id="mean">--</span></p>
-        <canvas id="graficaAceleracion"></canvas>
+        <div class="card">
+            <h3>Control de Dirección</h3>
+            <input type="range" min="-90" max="90" value="0" id="servoSlider" oninput="cambiarAngulo(this.value)">
+            <p>Comando: <span id="lblAngulo" class="valor-grande">0</span>°</p>
+            <p>Media Móvil (Input): <span id="mean_val">0</span></p>
+        </div>
+
+        <div class="card">
+            <h3>Navegación (Bearing)</h3>
+            <canvas id="chartBearing"></canvas>
+        </div>
+
+        <div class="card full-width">
+            <h3>Consumo Eléctrico Servos (mA)</h3>
+            <canvas id="chartCorriente" style="max-height: 300px;"></canvas>
+        </div>
     </div>
 
     <script>
         const socket = io();
-        const ctx = document.getElementById('graficaAceleracion').getContext('2d');
 
-        const chart = new Chart(ctx, {
+        // Diccionarios de traducción de estados Ada -> Texto
+        const estados_e = ["NONE", "STANDBY", "MANUAL", "TELECONTROL"];
+        const servo_states_e = ["NOMINAL", "RESTRINGIDO", "REDUNDANTE"];
+        const gyro_states_e = ["NORMAL", "ERROR MPU 1", "ERROR MPU 2", "ERROR MPU 3", "ERROR TOTAL DE MPUS"];
+
+        // Configuración Gráfica Bearing
+        const ctxB = document.getElementById('chartBearing').getContext('2d');
+        const chartBearing = new Chart(ctxB, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Bearing (°)', data: [], borderColor: '#f39c12', backgroundColor: 'rgba(243, 156, 18, 0.1)', fill: true, tension: 0.3 }] },
+            options: { responsive: true, animation: false, scales: { y: { min: -100, max: 100 } } }
+        });
+
+        // Configuración Gráfica Corriente
+        const ctxC = document.getElementById('chartCorriente').getContext('2d');
+        const chartCorriente = new Chart(ctxC, {
             type: 'line',
             data: {
                 labels: [],
                 datasets: [
-                    { label: 'x_accel_glob', data: [], borderColor: 'red', fill: false },
-                    { label: 'y_accel_glob', data: [], borderColor: 'green', fill: false },
-                    { label: 'z_accel_glob', data: [], borderColor: 'blue', fill: false },
-                    { label: 'bearing', data: [], borderColor: 'orange', fill: false }
+                    { label: 'Servo 1 (mA)', data: [], borderColor: '#e74c3c', fill: false },
+                    { label: 'Servo 2 (mA)', data: [], borderColor: '#3498db', fill: false }
                 ]
             },
-            options: { 
-                responsive: true,
-                animation: false,
-                scales: { y: { min: -90, max: 90 } } // Ajustado para aceleración G
-            }
+            options: { responsive: true, animation: false, scales: { y: { beginAtZero: true, title: { display: true, text: 'Corriente (mA)' } } } }
         });
 
         socket.on('mqtt_data', function(data) {
-            // Actualización de textos (claves acortadas como en el C anterior)
-            document.getElementById('curr_st').innerText = data.curr_st;
-            document.getElementById('mean').innerText = data.mean;
+            // 1. Traducción y Actualización de Textos
+            document.getElementById('curr_st').innerText = estados_e[data.curr_st] || "ERR";
+            document.getElementById('prior_st').innerText = estados_e[data.prior_st] || "ERR";
+            document.getElementById('servo_st').innerText = servo_states_e[data.servo_st] || "ERR";
+            document.getElementById('gyro_st').innerText = gyro_states_e[data.gyro_st] || "ERR";
+            document.getElementById('mean_val').innerText = data.mean;
 
-            // Gestión de datos en la gráfica (mantener últimos 30 puntos)
-            if(chart.data.labels.length > 30) {
-                chart.data.labels.shift();
-                chart.data.datasets.forEach(dataset => dataset.data.shift());
+            // 2. Actualizar Gráfica Bearing
+            if(chartBearing.data.labels.length > 30) {
+                chartBearing.data.labels.shift();
+                chartBearing.data.datasets[0].data.shift();
             }
+            let ahora = new Date().toLocaleTimeString();
+            chartBearing.data.labels.push(ahora);
+            chartBearing.data.datasets[0].data.push(data.bearing);
+            chartBearing.update();
 
-            chart.data.labels.push(new Date().toLocaleTimeString());
-            chart.data.datasets[0].data.push(data.x_accel_glob);
-            chart.data.datasets[1].data.push(data.y_accel_glob);
-            chart.data.datasets[2].data.push(data.z_accel_glob);
-            chart.data.datasets[3].data.push(data.bearing);
-            chart.update();
+            // 3. Actualizar Gráfica Corrientes
+            if(chartCorriente.data.labels.length > 30) {
+                chartCorriente.data.labels.shift();
+                chartCorriente.data.datasets.forEach(d => d.data.shift());
+            }
+            chartCorriente.data.labels.push(ahora);
+            chartCorriente.data.datasets[0].data.push(data.s1_curr);
+            chartCorriente.data.datasets[1].data.push(data.s2_curr);
+            chartCorriente.update();
         });
 
         function cambiarAngulo(valor) {

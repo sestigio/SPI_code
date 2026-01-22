@@ -61,8 +61,8 @@ package body Ada_Code is
    begin
 
       if servo_state = SERVO_REDUNDANT then
-         set_pwm_duty (duty_cycle, servo_redundancy);
          servo_redundancy := 1;
+         set_pwm_duty (duty_cycle, servo_redundancy);
       end if;
 
       mobile_mean := reading_mobile_mean;
@@ -134,8 +134,8 @@ package body Ada_Code is
    begin
 
       if servo_state = SERVO_REDUNDANT then
-         set_pwm_duty (duty_cycle, servo_redundancy);
          servo_redundancy := 1;
+         set_pwm_duty (duty_cycle, servo_redundancy);
       end if;
 
       entrada_escalada := angulo_recibido_mqtt* duty_cycle_half_difference /90 + duty_cycle_mean;
@@ -581,7 +581,7 @@ package body Ada_Code is
 
       if (c3_current >= 800.0) or (c3_bus_voltage < 4.0) or (c3_current <= 1.0) then
          servo_state := SERVO_REDUNDANT;
-         current_state := MANUAL;
+         --current_state := MANUAL;
       end if;
 
       -- Logs cada count_to_log ejecuciones
