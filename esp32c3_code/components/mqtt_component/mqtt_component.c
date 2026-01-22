@@ -12,6 +12,7 @@
 
 static const char *TAG = "MQTT_APP";
 static esp_mqtt_client_handle_t global_client; // Referencia global para publicar
+int angulo_recibido_mqtt = 0;
 
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
     esp_mqtt_event_handle_t event = event_data;
@@ -19,11 +20,25 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(TAG, "Conectado al Broker");
             // Aquí puedes suscribirte a los comandos de la Raspberry Pi
-            esp_mqtt_client_subscribe(global_client, "test", 0);
+            esp_mqtt_client_subscribe(global_client, "SPI_project/comandos", 0);
             break;
         case MQTT_EVENT_DATA:
-            // Aquí recibes los comandos de la Raspberry Pi
-            printf("Comando recibido: %.*s\r\n", event->data_len, event->data);
+            // 1. Creamos un buffer temporal para el comando y lo terminamos en NULL
+            char buf[16]; 
+            int len = (event->data_len < sizeof(buf) - 1) ? event->data_len : sizeof(buf) - 1;
+            memcpy(buf, event->data, len);
+            buf[len] = '\0';
+
+            // 2. Convertimos el texto a número entero (función atoi)
+            int valor = atoi(buf);
+
+            // 3. Validamos el rango (-90 a 90)
+            if (valor >= -90 && valor <= 90) {
+                angulo_recibido_mqtt = valor;
+                ESP_LOGI(TAG, "Nuevo ángulo aceptado: %d", angulo_recibido_mqtt);
+            } else {
+                ESP_LOGW(TAG, "Comando ignorado: valor %d fuera de rango (-90 a 90)", valor);
+            }
             break;
         default:
             break;
