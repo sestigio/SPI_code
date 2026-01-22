@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Control TFG - ESP32</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f4f4f4; }
+        .card { background: white; padding: 20px; margin: 10px auto; width: 80%; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input[type=range] { width: 80%; height: 25px; }
+        .valor-grande { font-size: 2em; color: #007bff; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Panel de Control MQTT</h1>
+
+    <div class="card">
+        <h3>Control del Servo</h3>
+        <input type="range" min="-90" max="90" value="0" id="servoSlider" oninput="cambiarAngulo(this.value)">
+        <p>Ángulo: <span id="lblAngulo" class="valor-grande">0</span>°</p>
+    </div>
+
+    <div class="card">
+        <h3>Telemetría en Tiempo Real</h3>
+        <p>Estado Actual: <span id="curr_st">--</span> | Media Móvil: <span id="mean">--</span></p>
+        <canvas id="graficaAceleracion"></canvas>
+    </div>
+
+    <script>
+        const socket = io();
+        const ctx = document.getElementById('graficaAceleracion').getContext('2d');
+
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'x_accel_glob', data: [], borderColor: 'red', fill: false },
+                    { label: 'y_accel_glob', data: [], borderColor: 'green', fill: false },
+                    { label: 'z_accel_glob', data: [], borderColor: 'blue', fill: false },
+                    { label: 'bearing', data: [], borderColor: 'orange', fill: false }
+                ]
+            },
+            options: { 
+                responsive: true,
+                animation: false,
+                scales: { y: { min: -90, max: 90 } } // Ajustado para aceleración G
+            }
+        });
+
+        socket.on('mqtt_data', function(data) {
+            // Actualización de textos (claves acortadas como en el C anterior)
+            document.getElementById('curr_st').innerText = data.curr_st;
+            document.getElementById('mean').innerText = data.mean;
+
+            // Gestión de datos en la gráfica (mantener últimos 30 puntos)
+            if(chart.data.labels.length > 30) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+
+            chart.data.labels.push(new Date().toLocaleTimeString());
+            chart.data.datasets[0].data.push(data.x_accel_glob);
+            chart.data.datasets[1].data.push(data.y_accel_glob);
+            chart.data.datasets[2].data.push(data.z_accel_glob);
+            chart.data.datasets[3].data.push(data.bearing);
+            chart.update();
+        });
+
+        function cambiarAngulo(valor) {
+            document.getElementById('lblAngulo').innerText = valor;
+            socket.emit('enviar_comando', valor);
+        }
+    </script>
+</body>
+</html>

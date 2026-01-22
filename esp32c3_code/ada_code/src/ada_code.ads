@@ -52,7 +52,7 @@ for gyro_states_e use (GYRO_NORMAL => 0, GYRO1_FAIL => 1, GYRO2_FAIL => 2, GYRO3
 
 -- Variables disponibles solo en Ada -------------------------------------
 
-duty_cycle : Integer range 0 .. 600;
+duty_cycle, duty_cycle_anterior : Integer range 0 .. 600;
 
 buffer_mobile_mean : buffer_mobile_mean_t;
 
@@ -61,14 +61,24 @@ index10_read : Integer range 0 .. 9;
 t_1 : Interfaces.Integer_64;
 t_1_interval : Interfaces.Integer_64;
 
+t_2 : Interfaces.Integer_64;
+t_2_interval : Interfaces.Integer_64;
+
 --t_2 : Interfaces.Integer_64;
 --t_3 : Interfaces.Integer_64;
 
 --green_led : Boolean;
 --yellow_led : Boolean;
 --red_led : Boolean;
-x_accel, y_accel, z_accel : Float
+x_accel, y_accel, z_accel : Float;
+
+x_accel_glob, y_accel_glob, z_accel_glob : Float
    with Export, Convention => C;
+
+-- Definimos Alpha_Escalado como un entero. 
+-- Si alpha era 0.1, 0.1 * 256 = 25.6 -> usamos 26
+Alpha_Fixed : constant Integer := 26; 
+One_Minus_Alpha_Fixed : constant Integer := 256 - Alpha_Fixed; -- 230
 
 -- Variables exportadas a C -------------------------------------
 
@@ -84,7 +94,7 @@ gyro_state : gyro_states_e := GYRO_NORMAL
 mobile_mean : Integer range 0 .. 4600
    with Export, Convention => C;
 
-servo_bearing : Integer range -100 .. 100
+servo_bearing : Integer range -1000 .. 1000
    with Export, Convention => C;
 
 count_to_log : constant Integer := 30;            -- Contador de iteraciones, que en cierto umbral genera logs en el serial

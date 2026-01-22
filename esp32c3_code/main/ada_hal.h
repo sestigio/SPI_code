@@ -17,9 +17,9 @@ extern int gyro_state;
 extern int mobile_mean;
 extern int servo_bearing;
 
-extern float x_accel;
-extern float y_accel;
-extern float z_accel;
+extern float x_accel_glob;
+extern float y_accel_glob;
+extern float z_accel_glob;
 
 //extern void mpuReadfromReg(uint8_t mpu_register, uint8_t *read_buffer, uint8_t length);
 

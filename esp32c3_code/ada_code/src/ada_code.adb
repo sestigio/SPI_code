@@ -53,12 +53,15 @@ package body Ada_Code is
 
       duty_cycle_limit_correction : Integer;
 
+      new_duty : Integer;
+
       servo_redundancy : Integer := 0;
+      entrada_escalada : Integer;
 
    begin
 
       if servo_state = SERVO_REDUNDANT then
-         set_pwm_duty (0, servo_redundancy);
+         set_pwm_duty (duty_cycle, servo_redundancy);
          servo_redundancy := 1;
       end if;
 
@@ -78,11 +81,13 @@ package body Ada_Code is
       end if;
 
       --ada_esp_log (102); -- Mostrar nueva media móvil
-      duty_cycle :=
-      ((mobile_mean - mean_reading_mean)
-         * (duty_cycle_half_difference - duty_cycle_limit_correction))
-      / mean_reading_half_difference
-      + duty_cycle_mean; -- 120 grados (rango de mov del palillo) es al rango total del pot lo que 1636 a 4096
+      entrada_escalada := (mobile_mean - mean_reading_mean) * (duty_cycle_half_difference - duty_cycle_limit_correction) / mean_reading_half_difference + duty_cycle_mean;
+      
+      new_duty :=
+      (duty_cycle_anterior * One_Minus_Alpha_Fixed) + (entrada_escalada * Alpha_Fixed); -- 120 grados (rango de mov del palillo) es al rango total del pot lo que 1636 a 4096
+
+      duty_cycle := new_duty / 256;
+      duty_cycle_anterior := duty_cycle;
 
       set_pwm_duty (duty_cycle, servo_redundancy);
       --servo_bearing := (mobile_mean-1636-1227) * 90 / 1227; -- 2454/2 = 1227
@@ -122,6 +127,9 @@ package body Ada_Code is
         (max_duty_cycle + min_duty_cycle) / 2;
 
       servo_redundancy : Integer := 0;
+
+      entrada_escalada : Integer;
+      new_duty : Integer;
    
    begin
 
@@ -130,7 +138,13 @@ package body Ada_Code is
          servo_redundancy := 1;
       end if;
 
-      duty_cycle := angulo_recibido_mqtt* duty_cycle_half_difference /90 + duty_cycle_mean;
+      entrada_escalada := angulo_recibido_mqtt* duty_cycle_half_difference /90 + duty_cycle_mean;
+
+      new_duty :=
+      (duty_cycle_anterior * One_Minus_Alpha_Fixed) + (entrada_escalada * Alpha_Fixed); -- 120 grados (rango de mov del palillo) es al rango total del pot lo que 1636 a 4096
+
+      duty_cycle := new_duty / 256;
+      duty_cycle_anterior := duty_cycle;
 
       set_pwm_duty (duty_cycle, servo_redundancy);
 
@@ -395,6 +409,10 @@ package body Ada_Code is
       x_accel_result := Majority_Of(x_accel_arr, different_accel_arr(1), faulty_mpu);
       y_accel_result := Majority_Of(y_accel_arr, different_accel_arr(2), faulty_mpu);
       z_accel_result := Majority_Of(z_accel_arr, different_accel_arr(3), faulty_mpu);
+
+      x_accel_glob := x_accel_result;
+      y_accel_glob := y_accel_result;
+      z_accel_glob := z_accel_result;
 
       for V of different_accel_arr loop
          --ada_esp_log (114);
@@ -823,7 +841,10 @@ begin
    --null;
 
    t_1 := 0;
-   t_1_interval := 20000;
+   t_1_interval := 10000;
+
+   t_2 := 0;
+   t_2_interval := 200000;
    --t_2_interval := 1000000;
    --t_3_interval := 100000;
 
