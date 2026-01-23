@@ -303,7 +303,7 @@ package body Ada_Code is
    -- Approximate equality
    function Approx_Equal(A, B : Float) return Boolean is
 
-   Tolerance : constant Float := 0.65; -- 40 grados de tolerancia
+   Tolerance : constant Float := 0.5; -- 40 grados de tolerancia
 
    begin
       return abs (A - B) <= Tolerance;
@@ -476,11 +476,11 @@ package body Ada_Code is
       y  => y_accel_result,
       z  => z_accel_result);
 
-   end if;
+      x_accel := x_accel_result;
+      y_accel := y_accel_result;
+      z_accel := z_accel_result;
 
-   x_accel := x_accel_result;
-   y_accel := x_accel_result;
-   z_accel := x_accel_result;
+   end if;
 
    end mpu_operate;
 
@@ -848,7 +848,7 @@ begin
    --t_2_interval := 1000000;
    --t_3_interval := 100000;
 
-   mobile_mean := 1690;
+   mobile_mean := 2100;
    buffer_mobile_mean := (others => mobile_mean);
    counter := 50;
 

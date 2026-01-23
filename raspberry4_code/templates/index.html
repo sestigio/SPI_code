@@ -9,7 +9,7 @@
         .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 1200px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .full-width { grid-column: span 2; }
-        .status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }
+        .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
         .status-item { padding: 10px; border-radius: 8px; background: #f8f9fa; border: 1px solid #dee2e6; }
         .label { font-size: 0.8em; color: #666; display: block; margin-bottom: 5px; }
         .value { font-weight: bold; color: #333; font-size: 1.1em; }
@@ -29,10 +29,6 @@
                     <span id="curr_st" class="value">--</span>
                 </div>
                 <div class="status-item">
-                    <span class="label">ESTADO PREVIO</span>
-                    <span id="prior_st" class="value">--</span>
-                </div>
-                <div class="status-item">
                     <span class="label">MODO SERVOS</span>
                     <span id="servo_st" class="value">--</span>
                 </div>
@@ -47,14 +43,14 @@
             <h3>Control de Dirección</h3>
             <input type="range" min="-90" max="90" value="0" id="servoSlider" oninput="cambiarAngulo(this.value)">
             <p>Comando: <span id="lblAngulo" class="valor-grande">0</span>°</p>
-            <p>Media Móvil (Input): <span id="mean_val">0</span> / 2454</p>
+            <p>Ángulo (Bearing) actual de servo: <span id="bearing">0</span></p>
             <p>Aceleración en x: <span id="x_accel_glob_x"> 0</span> g</p>
             <p>Aceleración en y: <span id="y_accel_glob_x"> 0</span> g</p>
             <p>Aceleración en z: <span id="z_accel_glob_x"> 0</span> g</p>
         </div>
 
         <div class="card">
-            <h3>Navegación (Bearing)</h3>
+            <h3>Ángulo (Bearing) de servo</h3>
             <canvas id="chartBearing"></canvas>
         </div>
 
@@ -97,10 +93,14 @@
         socket.on('mqtt_data', function(data) {
             // 1. Traducción y Actualización de Textos
             document.getElementById('curr_st').innerText = estados_e[data.curr_st] || "ERR";
-            document.getElementById('prior_st').innerText = estados_e[data.prior_st] || "ERR";
+            //document.getElementById('prior_st').innerText = estados_e[data.prior_st] || "ERR";
             document.getElementById('servo_st').innerText = servo_states_e[data.servo_st] || "ERR";
             document.getElementById('gyro_st').innerText = gyro_states_e[data.gyro_st] || "ERR";
-            document.getElementById('mean_val').innerText = data.mean;
+            //document.getElementById('mean_val').innerText = data.mean;
+            document.getElementById('bearing').innerText = data.bearing + "°";
+            document.getElementById('x_accel_glob_x').innerText = data.x_accel_glob.toFixed(2);
+            document.getElementById('y_accel_glob_x').innerText = data.y_accel_glob.toFixed(2);
+            document.getElementById('z_accel_glob_x').innerText = data.z_accel_glob.toFixed(2);
 
             // 2. Actualizar Gráfica Bearing
             if(chartBearing.data.labels.length > 30) {
